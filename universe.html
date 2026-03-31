@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vũ Trụ Ảo - Cinematic Masterpiece</title>
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --secondary: #7000ff;
+            --bg: #010103;
+            --glass: rgba(15, 15, 25, 0.85);
+            --border: rgba(255, 255, 255, 0.15);
+            --danger: #ff3366;
+            --heart: #ff0055;
+        }
+
+        body {
+            margin: 0; overflow: hidden; background-color: var(--bg);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: white; touch-action: none;
+        }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+
+        /* Giao diện Đăng nhập */
+        #startupOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, rgba(5, 5, 15, 0.9) 0%, var(--bg) 100%);
+            backdrop-filter: blur(30px); z-index: 1000; display: flex; justify-content: center; align-items: center;
+            transition: opacity 0.8s ease;
+        }
+        .startup-box {
+            background: var(--glass); padding: 40px; border-radius: 30px;
+            border: 1px solid var(--border); box-shadow: 0 30px 80px rgba(0, 242, 255, 0.1);
+            text-align: center; max-width: 450px; width: 90%;
+        }
+        .startup-box h2 { 
+            margin: 0 0 20px 0; font-size: 2.2rem; font-weight: 900;
+            background: linear-gradient(to right, var(--primary), #fff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        .auth-form { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+        .auth-input {
+            width: 100%; padding: 16px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.6); color: #fff;
+            font-size: 1rem; outline: none; box-sizing: border-box; transition: 0.3s;
+        }
+        .auth-input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0,242,255,0.3); }
+
+        .main-btn {
+            width: 100%; padding: 18px; border: none; border-radius: 16px;
+            background: linear-gradient(135deg, var(--primary), #0072ff); color: #000;
+            font-size: 1rem; font-weight: 800; cursor: pointer; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .main-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,242,255,0.4); }
+        
+        .secondary-btn {
+            background: transparent; border: 1px solid var(--border); color: #aaa;
+            padding: 14px; border-radius: 14px; cursor: pointer; font-weight: 600; width: 100%;
+            transition: 0.3s; margin-top: 5px;
+        }
+        .secondary-btn:hover { color: #fff; border-color: var(--primary); background: rgba(0,242,255,0.1); }
+
+        .link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.9rem; text-decoration: underline; margin-top: 10px; }
+
+        #statusOverlay {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 2000; display: none; background: var(--glass);
+            border: 1px solid var(--border); padding: 12px 24px; border-radius: 100px;
+        }
+        .status-content { display: flex; align-items: center; gap: 12px; }
+        .loader { width: 16px; height: 16px; border: 2px solid rgba(0, 242, 255, 0.2); border-top: 2px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #toggleUiBtn {
+            position: absolute; top: 25px; left: 25px; z-index: 20;
+            background: var(--glass); color: white; border: 1px solid var(--border);
+            width: 50px; height: 50px; border-radius: 15px; cursor: pointer; display: none;
+            align-items: center; justify-content: center; font-size: 20px; backdrop-filter: blur(10px);
+        }
+
+        #ui {
+            position: absolute; top: 90px; left: 25px; z-index: 10;
+            background: var(--glass); padding: 25px; border-radius: 20px;
+            border: 1px solid var(--border); backdrop-filter: blur(20px);
+            width: 280px; display: none; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: top left; max-height: 80vh; overflow-y: auto;
+        }
+        #ui::-webkit-scrollbar { width: 5px; } #ui::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 5px; }
+        #ui.hidden { opacity: 0; transform: scale(0.8) translateY(-20px); pointer-events: none; display: block !important; }
+        
+        .ui-btn {
+            margin-top: 10px; padding: 14px; border: none; border-radius: 12px;
+            background: rgba(255,255,255,0.08); color: #fff; font-weight: 600; cursor: pointer; width: 100%;
+            transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .ui-btn:hover { background: rgba(255,255,255,0.15); }
+        .ui-btn.accent { background: linear-gradient(135deg, var(--primary), #0072ff); color: #000; }
+        .ui-btn.accent:hover { box-shadow: 0 5px 15px rgba(0,242,255,0.4); }
+        .ui-btn.tour { background: linear-gradient(135deg, #ff00cc, #3333ff); color: white; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.3); }
+        .ui-btn.tour:hover { filter: brightness(1.2); box-shadow: 0 0 20px rgba(255,0,204,0.5); }
+        .ui-btn.danger { color: var(--danger); border: 1px solid rgba(255, 51, 102, 0.3); }
+
+        .code-display {
+            background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;
+            margin: 10px 0; font-family: monospace; font-size: 0.85rem; color: var(--primary);
+            border: 1px dashed var(--border); word-break: break-all; text-align: center; font-weight: bold;
+        }
+
+        /* Modal Xem Ảnh - Nâng cấp Cinematic */
+        #imageModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 5, 0.95); z-index: 4000; justify-content: center; align-items: center;
+            flex-direction: column; backdrop-filter: blur(30px);
+        }
+        #imageModal img { 
+            max-width: 90vw; max-height: 65vh; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 80px rgba(0, 242, 255, 0.2);
+            filter: brightness(1.1) contrast(1.05); object-fit: contain; transition: transform 0.3s;
+        }
+        
+        .modal-top-bar { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; align-items: center; }
+        .modal-icon-btn {
+            width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; background: rgba(255,255,255,0.1); color: white;
+            cursor: pointer; font-size: 22px; transition: 0.3s;
+        }
+        .modal-icon-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.1); }
+
+        #imgMenu {
+            display: none; position: absolute; top: 75px; right: 75px;
+            background: rgba(10,10,15,0.95); border: 1px solid var(--border); backdrop-filter: blur(10px);
+            border-radius: 12px; overflow: hidden; min-width: 150px; z-index: 4200;
+        }
+        .menu-item { padding: 14px 20px; cursor: pointer; font-size: 0.9rem; color: #eee; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .menu-item:hover { background: var(--primary); color: #000; }
+
+        /* Khu vực thả tim và mô tả */
+        .interaction-area {
+            display: flex; align-items: center; gap: 15px; margin-top: 20px; background: rgba(255,255,255,0.05);
+            padding: 10px 25px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1);
+        }
+        .heart-btn {
+            background: none; border: none; font-size: 24px; cursor: pointer; color: #555; transition: 0.3s;
+            display: flex; align-items: center; gap: 8px; font-family: sans-serif; outline: none;
+        }
+        .heart-btn.liked { color: var(--heart); transform: scale(1.1); animation: pop 0.3s ease; }
+        .heart-btn:hover { transform: scale(1.1); }
+        .like-count { color: #fff; font-size: 1rem; font-weight: bold; }
+        @keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1.1); } }
+
+        #imgDescription { margin-top: 15px; width: 85%; max-width: 600px; text-align: center; color: #ccc; font-size: 0.95rem; line-height: 1.6; }
+        #descInputArea { display: none; margin-top: 15px; width: 85%; max-width: 500px; gap: 10px; flex-direction: column; }
+        #descInputArea textarea { background: rgba(0,0,0,0.6); border: 1px solid var(--primary); color: white; padding: 15px; border-radius: 12px; resize: none; width: 100%; height: 70px; outline: none; }
+
+        .confirm-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.95); z-index: 5000; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        .confirm-card { background: rgba(20,20,30,0.9); padding: 35px; border-radius: 20px; text-align: center; max-width: 380px; border: 1px solid var(--border); width: 85%; }
+        .confirm-btns { display: flex; gap: 12px; margin-top: 25px; }
+        .c-btn { flex: 1; padding: 14px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .c-btn.yes { background: var(--danger); color: white; }
+        .c-btn.no { background: rgba(255,255,255,0.1); color: white; }
+        .c-btn.action { background: var(--primary); color: #000; }
+        .c-btn:hover { filter: brightness(1.2); }
+
+        #tourOverlay {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); border: 1px solid var(--primary); padding: 15px 30px;
+            border-radius: 50px; color: white; z-index: 3000; display: none; align-items: center; gap: 15px;
+            box-shadow: 0 0 20px rgba(0,242,255,0.3); backdrop-filter: blur(10px);
+        }
+        #tourOverlay button { background: var(--danger); border: none; color: white; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+
+        /* --- QUẢN LÝ ẢNH --- */
+        #imageManagerModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 5, 0.95); z-index: 4500; justify-content: center; align-items: center;
+            backdrop-filter: blur(20px);
+        }
+        .manager-container {
+            background: rgba(15, 15, 25, 0.95); padding: 25px; border-radius: 20px;
+            border: 1px solid var(--border); width: 90%; max-width: 800px;
+            display: flex; flex-direction: column;
+        }
+        .image-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 15px; overflow-y: auto; max-height: 55vh; padding-right: 5px; margin-bottom: 20px;
+        }
+        .image-grid::-webkit-scrollbar { width: 6px; } 
+        .image-grid::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 6px; }
+        .image-item {
+            position: relative; cursor: pointer; border-radius: 12px; overflow: hidden;
+            border: 2px solid transparent; transition: 0.2s; aspect-ratio: 1;
+        }
+        .image-item img { width: 100%; height: 100%; object-fit: cover; }
+        .image-item:hover { border-color: rgba(255,255,255,0.5); transform: scale(1.05); }
+        .image-item.selected { border-color: var(--danger); opacity: 0.8; transform: scale(0.95); }
+        .image-item.selected::after {
+            content: '✓'; position: absolute; top: 5px; right: 5px;
+            background: var(--danger); color: white; border-radius: 50%;
+            width: 20px; height: 20px; display: flex; justify-content: center; align-items: center;
+            font-size: 12px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .empty-msg { color: #888; text-align: center; width: 100%; grid-column: 1 / -1; padding: 30px 0; }
+    </style>
+</head>
+<body>
+
+    <div id="startupOverlay">
+        <div class="startup-box">
+            <h2 id="startupTitle">VŨ TRỤ ẢO</h2>
+            
+            <div id="view-login">
+                <p style="color: #aaa; margin-bottom: 25px;">Đăng nhập để kiến tạo vũ trụ của bạn</p>
+                <div class="auth-form">
+                    <input type="email" id="loginEmail" class="auth-input" placeholder="Email">
+                    <input type="password" id="loginPass" class="auth-input" placeholder="Mật khẩu">
+                    <button id="doLoginBtn" class="main-btn">Khởi Động</button>
+                    <button id="toRegisterBtn" class="link-btn">Chưa có tài khoản? Đăng ký</button>
+                    <button id="guestBtnLogin" class="secondary-btn">Tiếp tục tư cách Khách</button>
+                </div>
+            </div>
+
+            <div id="view-register" style="display: none;">
+                <p style="color: #aaa; margin-bottom: 25px;">Đăng ký thẻ định danh phi hành gia</p>
+                <div class="auth-form">
+                    <input type="email" id="regEmail" class="auth-input" placeholder="Email mới">
+                    <input type="password" id="regPass" class="auth-input" placeholder="Mật khẩu">
+                    <button id="doRegisterBtn" class="main-btn">Tạo Tài Khoản</button>
+                    <button id="toLoginBtn" class="link-btn">Đã có tài khoản? Đăng nhập</button>
+                </div>
+            </div>
+
+            <div id="view-guest-choice" style="display: none;">
+                <p style="color: #aaa; margin-bottom: 25px;">Lựa chọn điểm đến của bạn</p>
+                <div class="auth-form">
+                    <button id="guestJoinByCodeBtn" class="main-btn">🔍 Nhập Mã Vũ Trụ</button>
+                    <button id="guestCommonSpaceBtn" class="secondary-btn">🌌 Vũ Trụ Công Cộng</button>
+                    <button id="backToLoginFromGuestBtn" class="link-btn">Quay lại đăng nhập</button>
+                </div>
+            </div>
+
+            <div id="view-user" style="display: none;">
+                <p id="userWelcomeText" style="color: var(--primary); font-weight: bold; font-size: 1.1rem;"></p>
+                <div class="auth-form">
+                    <button id="myUniverseBtn" class="main-btn">🚀 Khám Phá Vũ Trụ Của Tôi</button>
+                    <button id="goJoinBtn" class="secondary-btn">🔍 Ghé thăm vũ trụ khác</button>
+                    <button id="logoutBtn" class="secondary-btn" style="color: var(--danger); border-color: rgba(255,51,102,0.3);">Đăng xuất</button>
+                </div>
+            </div>
+
+            <div id="view-join" style="display: none;">
+                <p style="color: #aaa; margin-bottom: 25px;">Nhập mã để dịch chuyển</p>
+                <div class="auth-form">
+                    <input type="text" id="universeInput" class="auth-input" placeholder="Nhập mã (VD: VU TRU CA NHAN...)">
+                    <button id="joinConfirmBtn" class="main-btn">Dịch Chuyển</button>
+                    <button id="backToAuthBtn" class="secondary-btn">Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusOverlay"><div class="status-content"><div class="loader"></div><div id="statusText">Đang kết nối...</div></div></div>
+
+    <!-- Nút Menu 3 gạch -->
+    <button id="toggleUiBtn">☰</button>
+
+    <div id="ui">
+        <h1 style="margin:0 0 15px 0; font-size:1.3rem; font-weight: 800; color: white;">BẢNG ĐIỀU KHIỂN</h1>
+        
+        <button id="startTourBtn" class="ui-btn tour">▶️ Du Hành Tự Động</button>
+
+        <div id="codeDisplayArea">
+            <p style="font-size:0.75rem; color:#aaa; margin:5px 0 2px 0;">MÃ KẾT NỐI:</p>
+            <div class="code-display" id="uiCode">---</div>
+        </div>
+        
+        <div id="ownerControls" style="display: none;">
+            <button id="addImgBtn" class="ui-btn accent">📸 Thêm Ảnh Mới</button>
+            <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
+            <button id="manageImgBtn" class="ui-btn">🖼️ Quản Lý Ảnh</button>
+            <button id="addAudioBtn" class="ui-btn">🎵 Tải Nhạc Nền</button>
+            <input type="file" id="audioInput" accept="audio/*" style="display: none;">
+            <button id="changePassBtn" class="ui-btn">🔐 Đổi Mật Khẩu</button>
+        </div>
+
+        <div id="songName" style="font-size:0.8rem; color:var(--primary); margin:15px 0; text-align:center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display:none;"></div>
+        <button id="playPauseBtn" class="ui-btn" style="display:none;">⏸️ Tạm dừng nhạc</button>
+        <button id="exitBtn" class="ui-btn danger" style="margin-top:15px;">🚪 Ngắt Kết Nối</button>
+    </div>
+
+    <!-- Thanh trạng thái Touring -->
+    <div id="tourOverlay">
+        <span>🎬 Đang trong chế độ Du Hành...</span>
+        <button id="stopTourBtn">Dừng Lại</button>
+    </div>
+
+    <!-- Modal Quản Lý Ảnh -->
+    <div id="imageManagerModal">
+        <div class="manager-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h3 style="margin:0; font-size: 1.3rem; color: white;">📸 Thư Viện Kỷ Niệm</h3>
+                <div class="modal-icon-btn" id="closeManagerBtn">&times;</div>
+            </div>
+            <div class="image-grid" id="managerGrid">
+                <!-- Hình ảnh sẽ được render ở đây -->
+            </div>
+            <div style="text-align: right;">
+                <button class="ui-btn danger" id="btnDeleteSelected" style="width: auto; padding: 12px 25px; display: inline-block; margin-top: 0; opacity: 0.5; pointer-events: none;">🗑️ Xóa Đã Chọn (0)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="imageModal">
+        <div class="modal-top-bar">
+            <div class="modal-icon-btn" id="imgSettingsBtn" style="display: none;">⋮</div>
+            <div class="modal-icon-btn" id="closeModal">&times;</div>
+        </div>
+        <div id="imgMenu">
+            <div class="menu-item" id="btnEditDesc">📝 Chỉnh sửa mô tả</div>
+            <div class="menu-item danger" id="btnDeleteImg">🗑️ Xoá vĩnh viễn</div>
+        </div>
+        
+        <img id="modalImg" src="">
+        
+        <div class="interaction-area">
+            <button id="heartBtn" class="heart-btn">🤍 <span id="likeCountText" class="like-count">0</span></button>
+        </div>
+
+        <div id="imgDescription"></div>
+        <div id="descInputArea">
+            <textarea id="descText" placeholder="Viết vài dòng kỷ niệm về bức ảnh này..."></textarea>
+            <button class="ui-btn accent" id="btnSaveDesc">Lưu Mô Tả</button>
+        </div>
+    </div>
+
+    <div id="changePassOverlay" class="confirm-overlay">
+        <div class="confirm-card">
+            <h3>🔐 Đổi Mật Khẩu</h3>
+            <div class="auth-form" style="margin-top:15px;">
+                <input type="password" id="oldPass" class="auth-input" placeholder="Mật khẩu hiện tại">
+                <input type="password" id="newPass" class="auth-input" placeholder="Mật khẩu mới">
+                <input type="password" id="confirmNewPass" class="auth-input" placeholder="Xác nhận mật khẩu">
+            </div>
+            <div class="confirm-btns">
+                <button class="c-btn no" id="cancelPass">Hủy</button>
+                <button class="c-btn action" id="savePass">Xác Nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmDeleteOverlay" class="confirm-overlay">
+        <div class="confirm-card">
+            <p id="deleteConfirmText" style="font-size: 1.1rem; margin-bottom: 20px;">Bức ảnh này sẽ bị xoá vĩnh viễn khỏi vũ trụ. Tiếp tục?</p>
+            <div class="confirm-btns">
+                <button class="c-btn no" id="confirmNo">Giữ Lại</button>
+                <button class="c-btn yes" id="confirmYes">Xoá Bỏ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <!-- Thư viện Three.js Core -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Thư viện Post-Processing -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, deleteDoc, enableIndexedDbPersistence, increment, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuQbp1QQ0I6xse_GJOGAjbkUU6RxSAJ2s",
+            authDomain: "myuniverse-83474.firebaseapp.com",
+            projectId: "myuniverse-83474",
+            storageBucket: "myuniverse-83474.firebasestorage.app",
+            messagingSenderId: "724697568321",
+            appId: "1:724697568321:web:bbe6182349a36cf52ba2c0",
+            measurementId: "G-52V5RX32HV"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const stableAppId = "universe_cinematic_v2_manager"; 
+
+        try { await enableIndexedDbPersistence(db); } catch (e) {}
+
+        let activeSlug = "";
+        let currentSessionId = 0;
+        let currentUser = null;
+        let selectedObject = null;
+        let isOwnerOfWorld = false;
+
+        const CHUNK_SIZE = 600000;
+        const bgm = new Audio(); bgm.loop = true;
+        const textureLoader = new THREE.TextureLoader();
+        const isMobile = window.innerWidth < 768; 
+
+        // --- AUTH & UI LOGIC ---
+        const switchView = (v) => { ['view-login', 'view-register', 'view-user', 'view-join', 'view-guest-choice'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = (id === v) ? 'block' : 'none'; }); };
+        onAuthStateChanged(auth, u => { currentUser = u; if(u && !u.isAnonymous) { document.getElementById('userWelcomeText').textContent = `Chào ${u.email.split('@')[0]}!`; switchView('view-user'); } else { switchView('view-login'); } });
+
+        document.getElementById('guestBtnLogin').onclick = () => switchView('view-guest-choice');
+        document.getElementById('backToLoginFromGuestBtn').onclick = () => switchView('view-login');
+        document.getElementById('guestCommonSpaceBtn').onclick = async () => { setStatus("Đang mở cổng..."); await signInAnonymously(auth); startUniverseFlow("Kỷ Niệm Chung"); };
+        document.getElementById('guestJoinByCodeBtn').onclick = async () => { setStatus("Chuẩn bị..."); await signInAnonymously(auth); switchView('view-join'); setStatus(null); };
+        document.getElementById('toRegisterBtn').onclick = () => switchView('view-register');
+        document.getElementById('toLoginBtn').onclick = () => switchView('view-login');
+        document.getElementById('goJoinBtn').onclick = () => switchView('view-join');
+        document.getElementById('backToAuthBtn').onclick = () => { if (currentUser && !currentUser.isAnonymous) switchView('view-user'); else switchView('view-guest-choice'); };
+        
+        document.getElementById('doLoginBtn').onclick = async () => { const e = document.getElementById('loginEmail').value.trim(), p = document.getElementById('loginPass').value.trim(); if(!e || !p) return; setStatus("Đang quét sinh trắc..."); try { await signInWithEmailAndPassword(auth, e, p); } catch(err){ alert("Sai thông tin!"); } setStatus(null); };
+        document.getElementById('doRegisterBtn').onclick = async () => { const e = document.getElementById('regEmail').value.trim(), p = document.getElementById('regPass').value.trim(); if(!e || !p) return; setStatus("Đăng ký định danh..."); try { await createUserWithEmailAndPassword(auth, e, p); } catch(err){ alert(err.message); } setStatus(null); };
+        document.getElementById('logoutBtn').onclick = () => signOut(auth);
+        document.getElementById('myUniverseBtn').onclick = () => { if (currentUser) startUniverseFlow("VU TRU CA NHAN (" + currentUser.uid.substring(0,6).toUpperCase() + ")"); };
+        document.getElementById('joinConfirmBtn').onclick = () => { const val = document.getElementById('universeInput').value.trim(); if (val) startUniverseFlow(val); };
+
+        document.getElementById('changePassBtn').onclick = () => { if (currentUser && currentUser.isAnonymous) return alert("Khách không đổi được mật khẩu!"); document.getElementById('changePassOverlay').style.display = 'flex'; };
+        document.getElementById('cancelPass').onclick = () => { document.getElementById('changePassOverlay').style.display = 'none'; };
+        document.getElementById('savePass').onclick = async () => {
+            const oldP = document.getElementById('oldPass').value, p1 = document.getElementById('newPass').value, p2 = document.getElementById('confirmNewPass').value;
+            if(!oldP || !p1 || !p2) return alert("Nhập đủ thông tin!"); if(p1 !== p2) return alert("Mật khẩu không khớp!");
+            setStatus("Xác thực...");
+            try { const cred = EmailAuthProvider.credential(currentUser.email, oldP); await reauthenticateWithCredential(currentUser, cred); await updatePassword(currentUser, p1); alert("Thành công!"); document.getElementById('changePassOverlay').style.display = 'none'; } catch(e) { alert("Lỗi: " + e.message); } setStatus(null);
+        };
+
+        function sanitize(str) { return str.replace(/[^a-zA-Z0-9\u00C0-\u1EF9]/g, '_').trim().toLowerCase(); }
+        function setStatus(text) { const el = document.getElementById('statusOverlay'); if(text) { el.style.display = 'block'; document.getElementById('statusText').textContent = text; } else { el.style.display = 'none'; } }
+
+        async function startUniverseFlow(rawCode) {
+            currentSessionId++; const sid = currentSessionId; activeSlug = sanitize(rawCode);
+            const myIdPart = currentUser ? currentUser.uid.substring(0, 6).toUpperCase() : "NONE";
+            isOwnerOfWorld = rawCode.includes("VU TRU CA NHAN") && rawCode.includes(myIdPart) && currentUser && !currentUser.isAnonymous;
+
+            setStatus("Đang dựng hình không gian...");
+            try {
+                if(!auth.currentUser) await signInAnonymously(auth);
+                const [mSnap, pSnap, bgmMSnap, bgmPSnap] = await Promise.all([ 
+                    getDocs(collection(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug)), 
+                    getDocs(collection(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug + '_parts')),
+                    getDocs(collection(db, 'artifacts', stableAppId, 'public', 'data', 'bgm_' + activeSlug)), 
+                    getDocs(collection(db, 'artifacts', stableAppId, 'public', 'data', 'bgm_' + activeSlug + '_parts'))
+                ]);
+
+                if (sid !== currentSessionId) return;
+                if (!isOwnerOfWorld && mSnap.empty && bgmMSnap.empty && activeSlug !== "ky_niem_chung") { alert("Không tìm thấy vũ trụ!"); return; }
+
+                resetScene();
+                document.getElementById('startupOverlay').style.opacity = '0';
+                setTimeout(() => { document.getElementById('startupOverlay').style.display = 'none'; }, 800);
+                document.getElementById('ui').style.display = 'block'; document.getElementById('toggleUiBtn').style.display = 'flex';
+                document.getElementById('uiCode').textContent = rawCode.toUpperCase();
+                document.getElementById('ownerControls').style.display = isOwnerOfWorld ? 'block' : 'none';
+                document.getElementById('imgSettingsBtn').style.display = isOwnerOfWorld ? 'flex' : 'none';
+
+                const partMap = {}; pSnap.forEach(pd => { const mid = pd.id.split('_p')[0]; if (!partMap[mid]) partMap[mid] = []; partMap[mid].push(pd.data()); });
+                mSnap.docs.map(d => ({ ...d.data(), id: d.id })).sort((a,b) => a.time - b.time).forEach(master => { 
+                    const b64 = (partMap[master.id] || []).sort((a,b) => a.idx - b.idx).map(p => p.chunk).join('');
+                    if(b64) applyImage(b64, false, master.id, master.description, master.likes || 0); 
+                });
+
+                // --- TẢI VÀ ĐỒNG BỘ NHẠC NỀN TỪ DATABASE ---
+                bgm.pause();
+                if (!bgmMSnap.empty) {
+                    const bgmPartMap = {}; 
+                    bgmPSnap.forEach(pd => { const mid = pd.id.split('_p')[0]; if (!bgmPartMap[mid]) bgmPartMap[mid] = []; bgmPartMap[mid].push(pd.data()); });
+                    
+                    bgmMSnap.docs.forEach(d => {
+                        if (d.id === "bgm_main") {
+                            const b64 = (bgmPartMap[d.id] || []).sort((a,b) => a.idx - b.idx).map(p => p.chunk).join('');
+                            if (b64) {
+                                bgm.src = b64;
+                                document.getElementById('songName').textContent = "🎧 " + (d.data().name || "Nhạc nền");
+                                document.getElementById('songName').style.display = 'block';
+                                document.getElementById('playPauseBtn').style.display = 'flex';
+                                document.getElementById('playPauseBtn').textContent = "⏸️ Tạm dừng nhạc";
+                                // TỰ ĐỘNG PHÁT NHẠC
+                                bgm.play().catch(e => console.warn("Trình duyệt chặn autoplay:", e));
+                            }
+                        }
+                    });
+                } else {
+                    bgm.src = "";
+                    document.getElementById('songName').style.display = 'none';
+                    document.getElementById('playPauseBtn').style.display = 'none';
+                }
+
+            } catch (e) { console.error(e); } finally { setStatus(null); }
+        }
+
+        async function saveLarge(coll, id, b64, meta = {}) { 
+            const chunks = []; for (let i = 0; i < b64.length; i += CHUNK_SIZE) chunks.push(b64.substring(i, i + CHUNK_SIZE)); 
+            await setDoc(doc(db, 'artifacts', stableAppId, 'public', 'data', coll, id), { ...meta, parts: chunks.length, time: Date.now(), likes: 0 }); 
+            for (let i = 0; i < chunks.length; i++) { await setDoc(doc(db, 'artifacts', stableAppId, 'public', 'data', coll + '_parts', id + '_p' + i), { chunk: chunks[i], idx: i }); } 
+        }
+
+        // ==========================================
+        // --- 3D GRAPHICS & CINEMATIC SETUP ---
+        // ==========================================
+        const scene = new THREE.Scene(); 
+        scene.fog = new THREE.FogExp2(0x020205, 0.0001); 
+        
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth/window.innerHeight, 0.1, 40000); 
+        camera.position.set(0, 1500, 3500);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" }); 
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+        renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5)); 
+        renderer.setClearColor(0x010103);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0; 
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        const controls = new THREE.OrbitControls(camera, renderer.domElement); 
+        controls.enableDamping = true; controls.dampingFactor = 0.04; controls.autoRotate = true; controls.autoRotateSpeed = 0.03;
+        controls.minDistance = 45; controls.maxDistance = 50000; 
+        
+        // --- POST-PROCESSING BLOOM ---
+        const renderScene = new THREE.RenderPass(scene, camera);
+        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.6, 0.3); 
+        const composer = new THREE.EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.3)); 
+
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = isMobile ? 8000 : 25000;
+        const starPos = new Float32Array(starCount * 3);
+        const starCol = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount; i++) {
+            const r = 2000 + Math.random() * 20000; 
+            const theta = Math.random() * 2 * Math.PI;
+            const phi = Math.acos(Math.random() * 2 - 1);
+            starPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+            starPos[i*3+1] = r * Math.cos(phi);
+            starPos[i*3+2] = r * Math.sin(phi) * Math.sin(theta);
+            const c = new THREE.Color();
+            c.setHSL(Math.random() > 0.5 ? 0.6 : 0.1, 0.8, Math.random());
+            starCol[i*3] = c.r; starCol[i*3+1] = c.g; starCol[i*3+2] = c.b;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+        const starMat = new THREE.PointsMaterial({ size: isMobile ? 8 : 15, vertexColors: true, transparent: true, opacity: 0.8, sizeAttenuation: true, blending: THREE.AdditiveBlending });
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField);
+
+        // --- HIỆU ỨNG MƯA SAO BĂNG (METEOR SHOWER) ---
+        const meteors = [];
+        const meteorHeadGeo = new THREE.SphereGeometry(18, 16, 16); // To hơn để dễ thấy
+        const meteorHeadMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        
+        const tailLength = 1500; // Đuôi dài hơn
+        const meteorTailGeo = new THREE.CylinderGeometry(0, 18, tailLength, 16);
+        meteorTailGeo.translate(0, tailLength / 2, 0); // Đẩy tâm lên đầu để khớp tọa độ
+        meteorTailGeo.rotateX(-Math.PI / 2); // SỬA LỖI: Lật ngược trục (-90 độ) để phần nhọn của đuôi kéo dài ra phía sau
+        const meteorTailMat = new THREE.MeshBasicMaterial({ color: 0x88ccff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+
+        let isMeteorShowerActive = false;
+
+        function scheduleNextMeteorShower() {
+            // Rút ngắn thời gian lặp lại: từ 10s đến 25s
+            const delay = 10000 + Math.random() * 15000;
+            setTimeout(spawnMeteorShower, delay);
+        }
+
+        function spawnMeteorShower() {
+            const numMeteors = Math.floor(Math.random() * 10) + 10; // 10 đến 20 sao băng
+            
+            // Ép sinh ra ở vị trí gần hơn (6000 thay vì 10000)
+            const startRadius = 6000 + Math.random() * 2000;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(Math.random() * 2 - 1);
+            
+            // Tâm điểm xuất phát chung của chùm sao
+            const baseStartPos = new THREE.Vector3(
+                startRadius * Math.sin(phi) * Math.cos(theta),
+                startRadius * Math.cos(phi),
+                startRadius * Math.sin(phi) * Math.sin(theta)
+            );
+
+            // Điểm đích chung: bay cắt chéo qua khu vực trung tâm vũ trụ để chắc chắn lọt vào khung hình
+            const baseEndPos = new THREE.Vector3(
+                -baseStartPos.x * 1.5,
+                -baseStartPos.y * 1.5,
+                -baseStartPos.z * 1.5
+            );
+
+            // Hướng bay chung của cả chùm
+            const baseDirection = new THREE.Vector3().subVectors(baseEndPos, baseStartPos).normalize();
+
+            for (let i = 0; i < numMeteors; i++) {
+                const meteorGroup = new THREE.Group();
+                const head = new THREE.Mesh(meteorHeadGeo, meteorHeadMat);
+                const tail = new THREE.Mesh(meteorTailGeo, meteorTailMat);
+                meteorGroup.add(head);
+                meteorGroup.add(tail);
+
+                // Thu hẹp độ phân tán để sao băng đi thành cụm rõ ràng hơn
+                const offset = new THREE.Vector3(
+                    (Math.random() - 0.5) * 2500,
+                    (Math.random() - 0.5) * 2500,
+                    (Math.random() - 0.5) * 2500
+                );
+                
+                // Thu hẹp khoảng cách so le dọc đường bay
+                const staggerDist = (Math.random() - 0.5) * 4000;
+                
+                const startPos = baseStartPos.clone().add(offset).add(baseDirection.clone().multiplyScalar(staggerDist));
+
+                meteorGroup.position.copy(startPos);
+                meteorGroup.lookAt(startPos.clone().add(baseDirection)); 
+
+                // Tốc độ bay chậm lại phân nửa (từ 180 xuống khoảng 60-110) để kịp chiêm ngưỡng
+                const speed = 60 + Math.random() * 50;
+                const velocity = baseDirection.clone().multiplyScalar(speed);
+
+                scene.add(meteorGroup);
+                meteors.push({ mesh: meteorGroup, velocity: velocity });
+            }
+            
+            isMeteorShowerActive = true;
+        }
+
+        // Lần đầu tiên xuất hiện cực nhanh: Chỉ 3 giây sau khi vào phòng là mưa sao băng sẽ đổ xuống!
+        setTimeout(spawnMeteorShower, 3000);
+
+        // --- HỐ ĐEN ---
+        const bhGroup = new THREE.Group(); scene.add(bhGroup);
+        const bh = new THREE.Mesh(
+            new THREE.SphereGeometry(43, 32, 32), 
+            new THREE.MeshBasicMaterial({ color: 0x000000, fog: false }) 
+        ); 
+        bhGroup.add(bh);
+        
+        const adCount = isMobile ? 8000 : 20000; 
+        const adGeo = new THREE.BufferGeometry(); const adPos = new Float32Array(adCount * 3), adCol = new Float32Array(adCount * 3);
+        for(let i=0; i<adCount; i++) { 
+            const r = 45 + Math.pow(Math.random(), 2) * 150; 
+            const a = Math.random() * Math.PI * 2; 
+            adPos[i*3] = Math.cos(a) * r; 
+            adPos[i*3+1] = (Math.random()-0.5) * (5 / (r/20)); 
+            adPos[i*3+2] = Math.sin(a) * r; 
+            const c = new THREE.Color(); 
+            if (r < 75) c.setHSL(0.08 + Math.random()*0.05, 1, 0.6 + Math.random()*0.4); 
+            else c.setHSL(0.58 + Math.random()*0.05, 0.9, 0.5 + Math.random()*0.5); 
+            adCol[i*3] = c.r; adCol[i*3+1] = c.g; adCol[i*3+2] = c.b; 
+        }
+        adGeo.setAttribute('position', new THREE.BufferAttribute(adPos, 3)); 
+        adGeo.setAttribute('color', new THREE.BufferAttribute(adCol, 3));
+        const adPoints = new THREE.Points(adGeo, new THREE.PointsMaterial({ size: 0.8, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, opacity: 1 })); 
+        bhGroup.add(adPoints);
+        
+        // --- HỆ MẶT TRỜI ---
+        const GALACTIC_RADIUS = 4000; 
+        const galacticPivot = new THREE.Group(); scene.add(galacticPivot);
+        const solarSystem = new THREE.Group(); solarSystem.position.set(GALACTIC_RADIUS, 0, 0); galacticPivot.add(solarSystem);
+        
+        const sun = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 32), new THREE.MeshBasicMaterial({ color: 0xfff5dd })); 
+        solarSystem.add(sun);
+        const sunLight = new THREE.PointLight(0xffdd66, 6, 8000); solarSystem.add(sunLight);
+        const sunGlowMesh = new THREE.Mesh(new THREE.SphereGeometry(165, 32, 32), new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending }));
+        solarSystem.add(sunGlowMesh);
+
+        const planets = [];
+        const planetData = [
+            { name: "Mercury", size: 10, color: 0xaaaaaa, dist: 350, speed: 0.015 },
+            { name: "Venus", size: 20, color: 0xffcc77, dist: 500, speed: 0.012 },
+            { name: "Earth", size: 22, color: 0x4499ff, dist: 700, speed: 0.008 },
+            { name: "Mars", size: 16, color: 0xff6644, dist: 900, speed: 0.006 },
+            { name: "Jupiter", size: 70, color: 0xffbb88, dist: 1300, speed: 0.004 },
+            { name: "Saturn", size: 60, color: 0xeeddaa, dist: 1700, speed: 0.003, ring: true },
+            { name: "Uranus", size: 40, color: 0xaaddff, dist: 2100, speed: 0.002, ring: true },
+            { name: "Neptune", size: 40, color: 0x5588ff, dist: 2500, speed: 0.0015 }
+        ];
+
+        planetData.forEach(p => {
+            const pGroup = new THREE.Group(); solarSystem.add(pGroup);
+            const pMesh = new THREE.Mesh(new THREE.SphereGeometry(p.size, 32, 32), new THREE.MeshStandardMaterial({ color: p.color, emissive: p.color, emissiveIntensity: 0.2, roughness: 0.7 }));
+            pMesh.position.x = p.dist; pGroup.add(pMesh);
+            if(p.ring) {
+                const ring = new THREE.Mesh(new THREE.RingGeometry(p.size * 1.5, p.size * 2.8, 64), new THREE.MeshBasicMaterial({ color: p.color, side: THREE.DoubleSide, transparent: true, opacity: 0.5 }));
+                ring.rotation.x = Math.PI / 2.5; pMesh.add(ring);
+            }
+            planets.push({ group: pGroup, speed: p.speed });
+        });
+
+        // --- CÁC KHỐI ẢNH (KỶ NIỆM) ---
+        const cubes = [];
+        const CUBE_COUNT = isMobile ? 150 : 350; 
+        const boxGeo = new THREE.BoxGeometry(15, 15, 15);
+        for(let i=0; i<CUBE_COUNT; i++) { 
+            const color = [0x00f2ff, 0x7000ff, 0xffffff][i%3];
+            const m = new THREE.Mesh(boxGeo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.0, wireframe: true, transparent: true, opacity: 0.4 })); 
+            
+            const r = 350 + Math.pow(Math.random(), 1.5) * 3000; 
+            const a = Math.random() * Math.PI * 2; 
+            const yBase = (Math.random() - 0.5) * 800; 
+            
+            m.position.set(Math.cos(a) * r, yBase, Math.sin(a) * r);
+            m.userData = { busy: false, r: r, a: a, s: 0.0001 + Math.random() * 0.0003, yBase: yBase, likes: 0 };
+            
+            scene.add(m); cubes.push({ mesh: m }); 
+        }
+
+        cubes.sort((a, b) => a.mesh.userData.r - b.mesh.userData.r);
+
+        function resetScene() { cubes.forEach(c => { c.mesh.userData.busy = false; c.mesh.scale.set(1,1,1); c.mesh.material.emissiveIntensity = 2.0; c.mesh.material.opacity = 0.4; [...c.mesh.children].forEach(ch => { if(ch.type==='Sprite') c.mesh.remove(ch); }); }); }
+
+        async function applyImage(url, isNew = true, id = null, desc = "", likes = 0) {
+            let bestCube = cubes.find(c => !c.mesh.userData.busy);
+            if(!bestCube) return;
+
+            bestCube.mesh.userData.busy = true; 
+            const imgId = id || "img_" + Date.now();
+            
+            bestCube.mesh.scale.set(2.5, 2.5, 2.5); 
+            // KHỞI TẠO ĐỘ SÁNG: Sẽ được thuật toán Smart Bloom trong animate() điều chỉnh lại
+            bestCube.mesh.material.emissiveIntensity = 6.0; 
+            bestCube.mesh.material.opacity = 0.9;
+            bestCube.mesh.userData.imgId = imgId; 
+            bestCube.mesh.userData.description = desc || ""; 
+            bestCube.mesh.userData.url = url;
+            bestCube.mesh.userData.likes = likes;
+            
+            textureLoader.load(url, tex => { 
+                tex.colorSpace = THREE.SRGBColorSpace;
+                const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+                const aspect = tex.image.width / tex.image.height;
+                const maxDim = 15 * 0.8; 
+                if (aspect > 1) s.scale.set(maxDim, maxDim / aspect, 1);
+                else s.scale.set(maxDim * aspect, maxDim, 1);
+                bestCube.mesh.add(s);
+            });
+            
+            if(isNew) {
+                setStatus("Đang lưu ảnh...");
+                try { await saveLarge('gal_' + activeSlug, imgId, url, { description: "", likes: 0 }); } catch(e) {}
+                setStatus(null);
+            }
+        }
+
+        // ==========================================
+        // --- QUẢN LÝ ẢNH HÀNG LOẠT ---
+        // ==========================================
+        const managerModal = document.getElementById('imageManagerModal');
+        const managerGrid = document.getElementById('managerGrid');
+        const btnDeleteSelected = document.getElementById('btnDeleteSelected');
+        let selectedImagesForDelete = [];
+
+        document.getElementById('manageImgBtn').onclick = () => {
+            selectedImagesForDelete = [];
+            managerGrid.innerHTML = '';
+            const busyCubes = cubes.filter(c => c.mesh.userData.busy);
+            
+            if(busyCubes.length === 0) {
+                managerGrid.innerHTML = '<div class="empty-msg">Chưa có bức ảnh nào trong vũ trụ.</div>';
+            } else {
+                busyCubes.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'image-item';
+                    item.innerHTML = `<img src="${c.mesh.userData.url}" alt="Memory">`;
+                    
+                    item.onclick = () => {
+                        const imgId = c.mesh.userData.imgId;
+                        if(selectedImagesForDelete.includes(imgId)) {
+                            selectedImagesForDelete = selectedImagesForDelete.filter(id => id !== imgId);
+                            item.classList.remove('selected');
+                        } else {
+                            selectedImagesForDelete.push(imgId);
+                            item.classList.add('selected');
+                        }
+                        updateDeleteBtn();
+                    };
+                    managerGrid.appendChild(item);
+                });
+            }
+            
+            updateDeleteBtn();
+            managerModal.style.display = 'flex';
+        };
+
+        document.getElementById('closeManagerBtn').onclick = () => { managerModal.style.display = 'none'; };
+
+        function updateDeleteBtn() {
+            const count = selectedImagesForDelete.length;
+            btnDeleteSelected.innerHTML = `🗑️ Xóa Đã Chọn (${count})`;
+            if(count > 0) {
+                btnDeleteSelected.style.opacity = '1';
+                btnDeleteSelected.style.pointerEvents = 'auto';
+            } else {
+                btnDeleteSelected.style.opacity = '0.5';
+                btnDeleteSelected.style.pointerEvents = 'none';
+            }
+        }
+
+        btnDeleteSelected.onclick = () => {
+            const count = selectedImagesForDelete.length;
+            if(count === 0) return;
+            
+            document.getElementById('deleteConfirmText').textContent = `Bạn có chắc chắn muốn xóa ${count} bức ảnh này vĩnh viễn?`;
+            
+            document.getElementById('confirmYes').onclick = async () => {
+                document.getElementById('confirmDeleteOverlay').style.display = 'none'; 
+                
+                // --- NÂNG CẤP: Hiển thị tiến trình xóa ảnh ---
+                let deletedCount = 0;
+                for(let imgId of selectedImagesForDelete) {
+                    deletedCount++;
+                    setStatus(`Đang xóa ${deletedCount}/${count} ảnh...`);
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug, imgId)); 
+                        for(let i=0; i<15; i++) { 
+                            try { await deleteDoc(doc(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug + '_parts', imgId + '_p' + i)); } catch(e){} 
+                        } 
+                        
+                        const cube = cubes.find(c => c.mesh.userData.imgId === imgId);
+                        if(cube) {
+                            cube.mesh.scale.set(1, 1, 1); 
+                            cube.mesh.material.emissiveIntensity = 2.0; 
+                            cube.mesh.material.opacity = 0.4; 
+                            cube.mesh.userData.busy = false; 
+                            cube.mesh.userData.url = null; 
+                            cube.mesh.userData.imgId = null;
+                            [...cube.mesh.children].forEach(ch => { if(ch.type==='Sprite') cube.mesh.remove(ch); });
+                        }
+                    } catch(e) { console.error("Lỗi xóa: ", imgId); }
+                }
+                
+                setStatus("Hoàn tất!");
+                setTimeout(() => { setStatus(null); managerModal.style.display = 'none'; }, 1000);
+                
+                document.getElementById('confirmYes').onclick = deleteSingleImageFunc;
+            };
+            
+            document.getElementById('confirmDeleteOverlay').style.display = 'flex';
+        };
+
+        // ==========================================
+        // --- UI & INTERACTION LOGIC ---
+        // ==========================================
+        const uiPanel = document.getElementById('ui');
+        document.getElementById('toggleUiBtn').onclick = (e) => { e.stopPropagation(); uiPanel.classList.toggle('hidden'); };
+        
+        const modal = document.getElementById('imageModal'), imgMenu = document.getElementById('imgMenu'), descArea = document.getElementById('descInputArea'), descDisplay = document.getElementById('imgDescription');
+        
+        document.getElementById('imgSettingsBtn').onclick = (e) => { e.stopPropagation(); imgMenu.style.display = imgMenu.style.display === 'block' ? 'none' : 'block'; };
+        document.getElementById('btnEditDesc').onclick = () => { imgMenu.style.display = 'none'; descArea.style.display = 'flex'; descDisplay.style.display = 'none'; document.getElementById('descText').value = selectedObject.userData.description || ""; };
+        document.getElementById('btnSaveDesc').onclick = async () => {
+            const newDesc = document.getElementById('descText').value; setStatus("Đang lưu...");
+            try { await updateDoc(doc(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug, selectedObject.userData.imgId), { description: newDesc }); selectedObject.userData.description = newDesc; descDisplay.textContent = newDesc || "Chưa có mô tả."; descArea.style.display = 'none'; descDisplay.style.display = 'block'; } catch(e) {} setStatus(null);
+        };
+        
+        const deleteSingleImageFunc = async () => {
+            document.getElementById('confirmDeleteOverlay').style.display = 'none'; modal.style.display = 'none'; setStatus("Đang xoá...");
+            try { const id = selectedObject.userData.imgId; await deleteDoc(doc(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug, id)); for(let i=0; i<15; i++) { try { await deleteDoc(doc(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug + '_parts', id + '_p' + i)); } catch(e){} } selectedObject.scale.set(1, 1, 1); selectedObject.material.emissiveIntensity = 2.0; selectedObject.material.opacity = 0.4; selectedObject.userData.busy = false; selectedObject.userData.url = null; [...selectedObject.children].forEach(ch => { if(ch.type==='Sprite') selectedObject.remove(ch); }); } catch(e) {} setStatus(null);
+        };
+
+        document.getElementById('btnDeleteImg').onclick = () => { 
+            imgMenu.style.display = 'none'; 
+            document.getElementById('deleteConfirmText').textContent = "Bức ảnh này sẽ bị xoá vĩnh viễn khỏi vũ trụ. Tiếp tục?";
+            document.getElementById('confirmYes').onclick = deleteSingleImageFunc;
+            document.getElementById('confirmDeleteOverlay').style.display = 'flex'; 
+        };
+        document.getElementById('confirmNo').onclick = () => document.getElementById('confirmDeleteOverlay').style.display = 'none';
+        
+        const closeModalFn = () => { modal.style.display = 'none'; imgMenu.style.display = 'none'; descArea.style.display = 'none'; descDisplay.style.display = 'block'; document.getElementById('heartBtn').classList.remove('liked'); document.getElementById('heartBtn').innerHTML = `🤍 <span class="like-count">${selectedObject?.userData.likes || 0}</span>`;};
+        document.getElementById('closeModal').onclick = closeModalFn;
+
+        document.getElementById('heartBtn').onclick = async () => {
+            const btn = document.getElementById('heartBtn');
+            if(btn.classList.contains('liked')) return; 
+            btn.classList.add('liked');
+            let currentLikes = (selectedObject.userData.likes || 0) + 1;
+            selectedObject.userData.likes = currentLikes;
+            btn.innerHTML = `❤️ <span class="like-count">${currentLikes}</span>`;
+            
+            try {
+                const docRef = doc(db, 'artifacts', stableAppId, 'public', 'data', 'gal_' + activeSlug, selectedObject.userData.imgId);
+                await updateDoc(docRef, { likes: increment(1) });
+            } catch(e) { console.error(e); }
+        };
+        
+        let pointerDownPos = new THREE.Vector2();
+        window.addEventListener('pointerdown', e => { pointerDownPos.set(e.clientX, e.clientY); });
+        
+        window.addEventListener('pointerup', e => {
+            // --- NÂNG CẤP: ƯU TIÊN GIAO DIỆN UI (Chống xuyên thấu) ---
+            // Nếu người dùng ấn vào Nút Menu (3 gạch) hoặc các nút khác trên màn hình (không phải thẻ canvas 3D)
+            // thì ngay lập tức hủy bỏ thao tác tìm khối 3D để tránh xung đột.
+            if (e.target.tagName !== 'CANVAS') return;
+
+            if (isTouring) return; 
+            if (modal.style.display === 'flex' || document.getElementById('confirmDeleteOverlay').style.display === 'flex' || document.getElementById('changePassOverlay').style.display === 'flex' || managerModal.style.display === 'flex') return;
+            
+            const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+            if (dist > 10) return; // Nếu ngón tay vuốt/di chuyển thì bỏ qua
+
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1), camera);
+            const hits = ray.intersectObjects(cubes.map(c => c.mesh), true);
+            if(hits.length > 0) {
+                const mesh = hits[0].object.type === 'Sprite' ? hits[0].object.parent : hits[0].object;
+                if(mesh.userData.url) { 
+                    selectedObject = mesh; 
+                    document.getElementById('modalImg').src = mesh.userData.url; 
+                    descDisplay.textContent = mesh.userData.description || "Chưa có mô tả nào."; 
+                    document.getElementById('heartBtn').innerHTML = `🤍 <span class="like-count">${mesh.userData.likes || 0}</span>`;
+                    modal.style.display = 'flex'; 
+                }
+            }
+        });
+
+        document.getElementById('addImgBtn').onclick = () => document.getElementById('fileInput').click();
+        document.getElementById('fileInput').onchange = async e => { for(const f of e.target.files) { const r = new FileReader(); r.onload = async ev => await applyImage(ev.target.result, true); r.readAsDataURL(f); } e.target.value = ""; };
+        
+        // TẢI NHẠC NỀN
+        document.getElementById('addAudioBtn').onclick = () => document.getElementById('audioInput').click();
+        document.getElementById('audioInput').onchange = e => { 
+            const f = e.target.files[0]; 
+            if(!f) return; 
+            const r = new FileReader(); 
+            r.onload = async ev => { 
+                bgm.src = ev.target.result; 
+                bgm.play(); 
+                document.getElementById('songName').textContent = "🎧 " + f.name; 
+                document.getElementById('songName').style.display = 'block'; 
+                document.getElementById('playPauseBtn').style.display = 'flex'; 
+                document.getElementById('playPauseBtn').textContent="⏸️ Tạm dừng nhạc"; 
+                await saveLarge('bgm_' + activeSlug, "bgm_main", ev.target.result, { name: f.name }); 
+            }; 
+            r.readAsDataURL(f); 
+        };
+        
+        document.getElementById('playPauseBtn').onclick = () => { if(bgm.paused){ bgm.play(); document.getElementById('playPauseBtn').textContent="⏸️ Tạm dừng nhạc"; } else { bgm.pause(); document.getElementById('playPauseBtn').textContent="▶️ Phát nhạc"; } };
+        document.getElementById('exitBtn').onclick = () => location.reload();
+
+        let isTouring = false;
+        let tourTargets = [];
+        let currentTourIndex = 0;
+        let tourTimer = null;
+        const cameraTarget = new THREE.Vector3();
+        const lookTarget = new THREE.Vector3();
+
+        document.getElementById('startTourBtn').onclick = () => {
+            tourTargets = cubes.filter(c => c.mesh.userData.busy);
+            if(tourTargets.length === 0) return alert("Vũ trụ đang trống. Hãy thêm ảnh trước nhé!");
+            
+            isTouring = true; currentTourIndex = 0; controls.enabled = false;
+            uiPanel.classList.add('hidden'); document.getElementById('toggleUiBtn').style.display = 'none';
+            document.getElementById('tourOverlay').style.display = 'flex';
+            nextTourStop();
+        };
+
+        document.getElementById('stopTourBtn').onclick = () => {
+            isTouring = false; clearTimeout(tourTimer); controls.enabled = true;
+            document.getElementById('tourOverlay').style.display = 'none';
+            document.getElementById('toggleUiBtn').style.display = 'flex'; uiPanel.classList.remove('hidden');
+        };
+
+        function nextTourStop() {
+            if(!isTouring) return;
+            if(currentTourIndex >= tourTargets.length) currentTourIndex = 0; 
+            tourTimer = setTimeout(() => { currentTourIndex++; nextTourStop(); }, 6000); 
+        }
+
+        // ==========================================
+        // --- ANIMATION LOOP ---
+        // ==========================================
+        function animate() { 
+            requestAnimationFrame(animate); const t = Date.now()*0.001; 
+            
+            starField.rotation.y += 0.0001;
+            bhGroup.rotation.y += 0.004;
+            galacticPivot.rotation.y += 0.00015; 
+            
+            planets.forEach(p => { p.group.rotation.y += p.speed; });
+            cubes.forEach(c => { 
+                const ud = c.mesh.userData;
+                ud.a += ud.s; 
+                c.mesh.position.x = Math.cos(ud.a) * ud.r;
+                c.mesh.position.z = Math.sin(ud.a) * ud.r;
+                c.mesh.position.y = ud.yBase + Math.sin(t + ud.r * 0.01) * 30; 
+                c.mesh.rotation.x += 0.005; c.mesh.rotation.y += 0.005; 
+
+                // --- NÂNG CẤP: SMART BLOOM (CHỐNG LÓA ẢNH KHI ZOOM GẦN) ---
+                if (ud.busy) {
+                    const distToCam = camera.position.distanceTo(c.mesh.position);
+                    const dynamicGlow = THREE.MathUtils.clamp(
+                        THREE.MathUtils.mapLinear(distToCam, 150, 1500, 0.5, 6.0), 
+                        0.5, 6.0
+                    );
+                    c.mesh.material.emissiveIntensity = dynamicGlow;
+                }
+            }); 
+
+            // --- ANIMATE MƯA SAO BĂNG ---
+            if (isMeteorShowerActive) {
+                for (let i = meteors.length - 1; i >= 0; i--) {
+                    const m = meteors[i];
+                    m.mesh.position.add(m.velocity);
+                    
+                    // Xóa từng sao băng khi nó bay quá xa
+                    if (m.mesh.position.length() > 25000) {
+                        scene.remove(m.mesh);
+                        meteors.splice(i, 1);
+                    }
+                }
+                
+                // Lên lịch đợt mưa sao băng tiếp theo khi đợt hiện tại đã bay qua hết
+                if (meteors.length === 0) {
+                    isMeteorShowerActive = false;
+                    scheduleNextMeteorShower();
+                }
+            }
+
+            if (isTouring && tourTargets.length > 0) {
+                const targetCube = tourTargets[currentTourIndex].mesh;
+                const targetPos = new THREE.Vector3();
+                targetCube.getWorldPosition(targetPos); 
+                
+                const offset = targetPos.clone().normalize().multiplyScalar(80);
+                cameraTarget.copy(targetPos).add(offset);
+                cameraTarget.y += 10;
+
+                camera.position.lerp(cameraTarget, 0.03);
+                controls.target.lerp(targetPos, 0.04);
+            }
+            
+            controls.update(); 
+            composer.render(); 
+        }
+        animate();
+        window.onresize = () => { 
+            camera.aspect=window.innerWidth/window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            composer.setSize(window.innerWidth, window.innerHeight); 
+        };
+    </script>
+</body>
+</html>
